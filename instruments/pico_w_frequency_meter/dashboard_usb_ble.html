@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pico Frequency Meter Console</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #121923;
+      --panel-2: #0f141d;
+      --text: #eaf2ff;
+      --muted: #9db0c9;
+      --line: #233043;
+      --accent: #5cc8ff;
+      --accent-2: #7bffb5;
+      --warn: #ffd166;
+      --danger: #ff6b6b;
+      --lcd-bg: #02130a;
+      --lcd-fg: #99ffcc;
+      --lcd-dim: #3f7d62;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at top, #132033 0%, var(--bg) 45%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .app {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .titlebox, .actions, .card, .console, .tabbar, .footerbar {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .titlebox { padding: 16px 18px; }
+    .titlebox h1 {
+      margin: 0 0 6px;
+      font-size: 1.45rem;
+      letter-spacing: .02em;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: .96rem;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      padding: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    button, select, input {
+      border-radius: 14px;
+      border: 1px solid #304157;
+      background: #101722;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: .96rem;
+      outline: none;
+    }
+    button {
+      cursor: pointer;
+      background: linear-gradient(180deg, #182334, #101722);
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    }
+    button:hover { transform: translateY(-1px); border-color: #4b6888; }
+    button.primary {
+      background: linear-gradient(180deg, #184568, #12314b);
+      border-color: #2e7bb9;
+    }
+    button.good {
+      background: linear-gradient(180deg, #143928, #10281d);
+      border-color: #1d6d48;
+    }
+    button.warn {
+      background: linear-gradient(180deg, #4f3c10, #342709);
+      border-color: #a27a16;
+    }
+    button.danger {
+      background: linear-gradient(180deg, #4d1820, #311017);
+      border-color: #9d3340;
+    }
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0,1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .pill {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 10px 12px;
+      min-height: 78px;
+    }
+    .pill .label {
+      color: var(--muted);
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .pill .value {
+      font-size: 1.05rem;
+      margin-top: 8px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .ok { color: var(--accent-2); }
+    .warnText { color: var(--warn); }
+    .dangerText { color: var(--danger); }
+    .tabbar {
+      padding: 8px;
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .tab.active {
+      background: #162232;
+      color: var(--text);
+      border-color: #335171;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.3fr .9fr;
+      gap: 16px;
+    }
+    .card { padding: 18px; }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+      letter-spacing: .02em;
+    }
+    .lcd {
+      background: linear-gradient(180deg, #04170d, var(--lcd-bg));
+      border: 1px solid #0d4a2e;
+      border-radius: 26px;
+      padding: 20px;
+      box-shadow: inset 0 0 30px rgba(0,255,128,.06), 0 0 24px rgba(0,0,0,.25);
+      min-height: 310px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+    .lcd-top, .lcd-bottom {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--lcd-dim);
+      font-size: .88rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .lcd-main {
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+    .digits {
+      font-family: Consolas, Menlo, Monaco, monospace;
+      font-size: clamp(2.4rem, 7vw, 6.2rem);
+      line-height: 1;
+      color: var(--lcd-fg);
+      text-shadow: 0 0 10px rgba(153,255,204,.2), 0 0 24px rgba(153,255,204,.08);
+      letter-spacing: .03em;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .units {
+      margin-top: 10px;
+      font-size: 1.25rem;
+      color: var(--lcd-dim);
+      letter-spacing: .18em;
+    }
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 12px;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 12px;
+    }
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: .82rem;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .field input { width: 100%; }
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .console {
+      padding: 14px;
+      min-height: 560px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 12px;
+    }
+    .console-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .log, .debugbox {
+      background: #071019;
+      border: 1px solid #1e2d3f;
+      border-radius: 16px;
+      padding: 12px;
+      overflow: auto;
+      font-family: Consolas, Menlo, Monaco, monospace;
+      font-size: .9rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .log {
+      min-height: 300px;
+      max-height: 460px;
+    }
+    .debugbox {
+      min-height: 190px;
+      max-height: 320px;
+    }
+    .log .tx { color: #84c5ff; }
+    .log .rx { color: #b9ffd7; }
+    .log .sys { color: #ffd98d; }
+    .log .err { color: #ff9c9c; }
+    .cmdline {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+    .footerbar {
+      margin-top: 16px;
+      padding: 12px 16px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: .92rem;
+      line-height: 1.45;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid #31455c;
+      background: #0e151f;
+      font-size: .88rem;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 12px;
+    }
+    @media (max-width: 980px) {
+      .grid, .status-strip, .kpi-grid { grid-template-columns: 1fr; }
+      .status-strip { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="titlebox">
+        <h1>Pico Frequency Meter Console</h1>
+        <div class="subtitle">Use the same meter controls over USB serial or Bluetooth. USB requires the USB-command firmware variant.</div>
+      </div>
+      <div class="actions">
+        <span id="connBadge" class="badge">Disconnected</span>
+        <button id="connectUsbBtn" class="primary">Connect USB</button>
+        <button id="connectBtn">Connect Bluetooth</button>
+        <button id="disconnectBtn">Disconnect</button>
+        <button id="refreshBtn">Status</button>
+        <button id="setupGp3Btn">Set up GP3 measurement</button>
+      </div>
+    </div>
+
+    <div class="status-strip">
+      <div class="pill"><div class="label">Device</div><div class="value" id="deviceName">—</div></div>
+      <div class="pill"><div class="label">Firmware</div><div class="value" id="release">—</div></div>
+      <div class="pill"><div class="label">Input / Output</div><div class="value" id="pinSummary">—</div></div>
+      <div class="pill"><div class="label">Gate / Samples</div><div class="value" id="gateSamples">—</div></div>
+      <div class="pill"><div class="label">Generator</div><div class="value" id="genState">—</div></div>
+      <div class="pill"><div class="label">Streaming</div><div class="value" id="streamState">—</div></div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab active" data-tab="meter">Meter</div>
+      <div class="tab" data-tab="config">Settings</div>
+      <div class="tab" data-tab="console">Console</div>
+      <div class="tab" data-tab="debug">Debug</div>
+      <div class="tab" data-tab="help">Help</div>
+    </div>
+
+    <div id="meter" class="tab-panel active">
+      <div class="grid">
+        <div class="card">
+          <h2>Large LCD Display</h2>
+          <div class="lcd">
+            <div class="lcd-top">
+              <span id="lcdConn">LINK: OFF</span>
+              <span id="lcdMode">MODE: IDLE</span>
+              <span id="lcdAge">AGE: —</span>
+            </div>
+            <div class="lcd-main">
+              <div class="digits" id="digits">0.000</div>
+              <div class="units" id="units">HZ</div>
+            </div>
+            <div class="lcd-bottom">
+              <span id="lcdGate">GATE: —</span>
+              <span id="lcdSamples">SAMPLES: —</span>
+              <span id="lcdGen">GEN: OFF</span>
+            </div>
+          </div>
+          <div style="height:12px"></div>
+          <div class="mini-grid">
+            <div class="pill"><div class="label">Last Pulses</div><div class="value" id="pulses">—</div></div>
+            <div class="pill"><div class="label">Elapsed</div><div class="value" id="elapsed">—</div></div>
+          </div>
+          <div style="height:12px"></div>
+          <div class="row">
+            <button id="measureBtn" class="good">Measure Once</button>
+            <button id="streamOnBtn" class="primary">Start Stream</button>
+            <button id="streamOffBtn">Stop Stream</button>
+            <button id="pingBtn">Ping</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Quick Actions</h2>
+          <div class="row" style="margin-bottom:10px;">
+            <button class="presetBtn" data-hz="10">10 Hz</button>
+            <button class="presetBtn" data-hz="100">100 Hz</button>
+            <button class="presetBtn" data-hz="1000">1 kHz</button>
+            <button class="presetBtn" data-hz="10000">10 kHz</button>
+          </div>
+          <div class="row" style="margin-bottom:10px;">
+            <button id="genOnBtn" class="good">Generator On</button>
+            <button id="genOffBtn">Generator Off</button>
+            <button id="saveBtn" class="warn">Save to Pico</button>
+            <button id="factoryBtn" class="danger">Factory Reset</button>
+          </div>
+          <p class="hint">
+            Use the generator as a self-test source by jumpering <strong>GP15 → GP14</strong>. The Pico W meter input expects a clean digital pulse train at <strong>3.3 V logic</strong>.
+          </p>
+          <div style="height:10px"></div>
+          <div class="mini-grid">
+            <div class="pill"><div class="label">Target Generator</div><div class="value" id="quickGen">—</div></div>
+            <div class="pill"><div class="label">Raw Last Line</div><div class="value" id="rawLast">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="config" class="tab-panel">
+      <div class="grid">
+        <div class="card">
+          <h2>Meter Settings</h2>
+          <div class="field-grid">
+            <div class="field">
+              <label for="gateMs">Gate Time (ms)</label>
+              <input id="gateMs" type="number" min="10" max="5000" step="10" value="250" />
+            </div>
+            <div class="field">
+              <label for="samples">Averaging Samples</label>
+              <input id="samples" type="number" min="1" max="32" step="1" value="3" />
+            </div>
+            <div class="field">
+              <label for="streamMs">Stream Interval (ms)</label>
+              <input id="streamMs" type="number" min="100" max="10000" step="100" value="1000" />
+            </div>
+            <div class="field">
+              <label for="pinInput">Input GPIO</label>
+              <input id="pinInput" type="number" min="0" max="28" step="1" value="14" />
+            </div>
+          </div>
+          <div style="height:12px"></div>
+          <div class="row">
+            <button id="applyMeterBtn" class="primary">Apply Meter Settings</button>
+            <button id="readMeterBtn">Read Back</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Generator Settings</h2>
+          <div class="field-grid">
+            <div class="field">
+              <label for="genHz">Generator Frequency (Hz)</label>
+              <input id="genHz" type="number" min="1" max="200000" step="1" value="1000" />
+            </div>
+            <div class="field">
+              <label for="genDuty">Duty (%)</label>
+              <input id="genDuty" type="number" min="1" max="99" step="1" value="50" />
+            </div>
+            <div class="field">
+              <label for="pinOutput">Generator GPIO</label>
+              <input id="pinOutput" type="number" min="0" max="28" step="1" value="15" />
+            </div>
+          </div>
+          <div style="height:12px"></div>
+          <div class="row">
+            <button id="applyGenBtn" class="primary">Apply Generator</button>
+            <button id="genSetAndOnBtn" class="good">Apply + On</button>
+            <button id="genSetAndOffBtn">Apply + Off</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="console" class="tab-panel">
+      <div class="console">
+        <div class="console-head">
+          <h2 style="margin:0">Command Monitor</h2>
+          <div class="row">
+            <button id="clearLogBtn">Clear Log</button>
+            <button id="copyLogBtn">Copy Log</button>
+          </div>
+        </div>
+        <div class="hint">You can watch the live TX/RX traffic here and also send raw commands directly to the Pico W firmware. Raw non-JSON lines are preserved and surfaced in the debug tab.</div>
+        <div id="log" class="log"></div>
+        <div class="cmdline">
+          <input id="rawCmd" type="text" placeholder="Type a raw command, for example: STATUS? or GEN SET 1000 50" />
+          <button id="sendRawBtn" class="primary">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="debug" class="tab-panel">
+      <div class="grid">
+        <div class="card">
+          <h2>Transport and Parse Health</h2>
+          <div class="kpi-grid">
+            <div class="pill"><div class="label">Notify Frames</div><div class="value" id="notifyFrames">0</div></div>
+            <div class="pill"><div class="label">JSON Frames</div><div class="value" id="jsonFrames">0</div></div>
+            <div class="pill"><div class="label">Raw Frames</div><div class="value" id="rawFrames">0</div></div>
+            <div class="pill"><div class="label">Parse Errors</div><div class="value" id="parseErrors">0</div></div>
+          </div>
+          <div style="height:12px"></div>
+          <div class="mini-grid">
+            <div class="pill"><div class="label">Last Command Sent</div><div class="value" id="lastCmd">—</div></div>
+            <div class="pill"><div class="label">Last Message Type</div><div class="value" id="lastType">—</div></div>
+            <div class="pill"><div class="label">Last ACK</div><div class="value" id="lastAck">—</div></div>
+            <div class="pill"><div class="label">Last Error</div><div class="value" id="lastError">—</div></div>
+          </div>
+          <div style="height:12px"></div>
+          <div class="mini-grid">
+            <div class="pill"><div class="label">Last RX Echo</div><div class="value" id="lastRxEcho">—</div></div>
+            <div class="pill"><div class="label">Last PONG</div><div class="value" id="lastPong">—</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Current Device Snapshot</h2>
+          <div class="debugbox" id="snapshotBox">Awaiting status...</div>
+        </div>
+      </div>
+
+      <div style="height:16px"></div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Last Parsed JSON</h2>
+          <div class="debugbox" id="lastJsonBox">No JSON messages yet.</div>
+        </div>
+        <div class="card">
+          <h2>Last Raw Non-JSON Line</h2>
+          <div class="debugbox" id="lastRawBox">No raw text lines yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="help" class="tab-panel">
+      <div class="card">
+        <h2>Command Reference</h2>
+        <div class="hint">
+          <p><strong>Core:</strong> <code>IDN?</code>, <code>STATUS?</code>, <code>MEASURE</code>, <code>PING</code>, <code>HELP</code></p>
+          <p><strong>Streaming:</strong> <code>STREAM ON</code>, <code>STREAM OFF</code>, <code>SET STREAM_MS 1000</code></p>
+          <p><strong>Meter:</strong> <code>SET GATE 250</code>, <code>SET SAMPLES 3</code>, <code>SET PIN_IN 14</code></p>
+          <p><strong>Generator:</strong> <code>GEN SET 1000 50</code>, <code>GEN ON</code>, <code>GEN OFF</code>, <code>SET PIN_OUT 15</code></p>
+          <p><strong>Config:</strong> <code>SAVE</code>, <code>FACTORY</code></p>
+          <p><strong>Debug:</strong> the page now preserves raw non-JSON lines, last ACK, last error, last RX echo, parse counters, and the last full JSON payload.</p>
+          <p><strong>Suggested self-test wiring:</strong> <code>GP15 → GP14</code>, plus common ground.</p>
+          <p><strong>Important:</strong> USB and Bluetooth require browser support and a secure context such as <code>https:</code> or <code>localhost</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footerbar">
+      Dashboard release v1.1.0 · Nordic UART Service UUID 6E400001-B5A3-F393-E0A9-E50E24DCCA9E · Enhanced debug view with protocol compatibility for the current firmware relist.
+    </div>
+  </div>
+
+  <script>
+    const NUS_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+    const NUS_RX = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+    const NUS_TX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+
+    let bleDevice = null;
+    let server = null;
+    let service = null;
+    let rxChar = null;
+    let txChar = null;
+    let rxBuffer = '';
+    let transport = null;
+    let serialPort = null;
+    let serialReader = null;
+    let serialWriter = null;
+    let serialReadTask = null;
+    let serialWriteQueue = Promise.resolve();
+    let lastMeasureTs = 0;
+
+    let state = {
+      connected: false,
+      stream: false,
+      stream_ms: 1000,
+      gen_enabled: false,
+      gen_hz: 1000,
+      gen_duty_pct: 50,
+      release: '—',
+      deviceName: '—',
+      gate_ms: 250,
+      samples: 3,
+      pin_in: 14,
+      pin_out: 15,
+      last_hz: 0,
+      last_source: '—',
+      last_type: '—',
+      last_ack: '—',
+      last_error: '—',
+      last_rx_echo: '—',
+      last_pong: '—',
+      notify_frames: 0,
+      json_frames: 0,
+      raw_frames: 0,
+      parse_errors: 0,
+      last_raw_line: '—',
+      last_json: null,
+      last_cmd: '—',
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function logLine(kind, text) {
+      const log = $('log');
+      const div = document.createElement('div');
+      div.className = kind;
+      const stamp = new Date().toLocaleTimeString();
+      div.textContent = `[${stamp}] ${text}`;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+      $('rawLast').textContent = text.slice(0, 80);
+    }
+
+    function formatHz(hz) {
+      if (hz == null || Number.isNaN(Number(hz))) return '—';
+      const n = Number(hz);
+      if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(3)} MHz`;
+      if (n >= 1000) return `${(n / 1000).toFixed(3)} kHz`;
+      return `${n.toFixed(3)} Hz`;
+    }
+
+    function safeJson(value) {
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    }
+
+    function updateDigits(hz) {
+      const n = Number(hz || 0);
+      let value = '0.000';
+      let units = 'HZ';
+      if (n >= 1_000_000) {
+        value = (n / 1_000_000).toFixed(6);
+        units = 'MHZ';
+      } else if (n >= 1000) {
+        value = (n / 1000).toFixed(6);
+        units = 'KHZ';
+      } else {
+        value = n.toFixed(3);
+        units = 'HZ';
+      }
+      $('digits').textContent = value;
+      $('units').textContent = units;
+    }
+
+    function updateAge() {
+      if (!lastMeasureTs) {
+        $('lcdAge').textContent = 'AGE: —';
+        return;
+      }
+      const ageMs = Date.now() - lastMeasureTs;
+      $('lcdAge').textContent = `AGE: ${(ageMs / 1000).toFixed(1)} s`;
+    }
+
+    function updateSnapshot() {
+      const snapshot = {
+        connected: state.connected,
+        deviceName: state.deviceName,
+        release: state.release,
+        pin_in: state.pin_in,
+        pin_out: state.pin_out,
+        gate_ms: state.gate_ms,
+        samples: state.samples,
+        stream: state.stream,
+        stream_ms: state.stream_ms,
+        gen_enabled: state.gen_enabled,
+        gen_hz: state.gen_hz,
+        gen_duty_pct: state.gen_duty_pct,
+        last_hz: state.last_hz,
+        last_source: state.last_source,
+        last_type: state.last_type,
+      };
+      $('snapshotBox').textContent = safeJson(snapshot);
+      $('lastJsonBox').textContent = state.last_json ? safeJson(state.last_json) : 'No JSON messages yet.';
+      $('lastRawBox').textContent = state.last_raw_line || 'No raw text lines yet.';
+    }
+
+    function updateDebugKPIs() {
+      $('notifyFrames').textContent = String(state.notify_frames ?? 0);
+      $('jsonFrames').textContent = String(state.json_frames ?? 0);
+      $('rawFrames').textContent = String(state.raw_frames ?? 0);
+      $('parseErrors').textContent = String(state.parse_errors ?? 0);
+      $('lastCmd').textContent = state.last_cmd || '—';
+      $('lastType').textContent = state.last_type || '—';
+      $('lastAck').textContent = state.last_ack || '—';
+      $('lastError').textContent = state.last_error || '—';
+      $('lastRxEcho').textContent = state.last_rx_echo || '—';
+      $('lastPong').textContent = state.last_pong || '—';
+      updateSnapshot();
+    }
+
+    function updateBadge() {
+      $('connBadge').textContent = state.connected ? `${transport === 'usb' ? 'USB' : 'Bluetooth'}: Connected` : 'Disconnected';
+      $('lcdConn').textContent = `LINK: ${state.connected ? 'ON' : 'OFF'}`;
+      $('deviceName').textContent = state.deviceName || '—';
+      $('release').textContent = state.release || '—';
+      $('pinSummary').textContent = `GP${state.pin_in ?? '—'} / GP${state.pin_out ?? '—'}`;
+      $('gateSamples').textContent = `${state.gate_ms ?? '—'} ms / ${state.samples ?? '—'}`;
+      $('genState').textContent = state.gen_enabled ? `${formatHz(state.gen_hz)} @ ${state.gen_duty_pct || 50}%` : 'OFF';
+      $('streamState').textContent = state.stream ? `${state.stream_ms || '—'} ms` : 'OFF';
+      $('lcdGate').textContent = `GATE: ${state.gate_ms ?? '—'} ms`;
+      $('lcdSamples').textContent = `SAMPLES: ${state.samples ?? '—'}`;
+      $('lcdGen').textContent = state.gen_enabled ? `GEN: ${formatHz(state.gen_hz)}` : 'GEN: OFF';
+      $('quickGen').textContent = state.gen_enabled ? `${formatHz(state.gen_hz)} / ${state.gen_duty_pct || 50}%` : 'OFF';
+      updateDebugKPIs();
+    }
+
+    function applyStatusToForm() {
+      $('gateMs').value = state.gate_ms ?? 250;
+      $('samples').value = state.samples ?? 3;
+      $('streamMs').value = state.stream_ms ?? 1000;
+      $('pinInput').value = state.pin_in ?? 14;
+      $('genHz').value = state.gen_hz ?? 1000;
+      $('genDuty').value = state.gen_duty_pct ?? 50;
+      $('pinOutput').value = state.pin_out ?? 15;
+      updateBadge();
+    }
+
+    function saveLocalPrefs() {
+      const prefs = {
+        gateMs: $('gateMs').value,
+        samples: $('samples').value,
+        streamMs: $('streamMs').value,
+        pinInput: $('pinInput').value,
+        genHz: $('genHz').value,
+        genDuty: $('genDuty').value,
+        pinOutput: $('pinOutput').value,
+      };
+      localStorage.setItem('pico_freqmeter_prefs', JSON.stringify(prefs));
+    }
+
+    function loadLocalPrefs() {
+      try {
+        const prefs = JSON.parse(localStorage.getItem('pico_freqmeter_prefs') || '{}');
+        for (const [key, val] of Object.entries(prefs)) {
+          if ($(key) && val != null) $(key).value = val;
+        }
+      } catch {}
+    }
+
+    function handleJson(msg) {
+      state.last_json = msg;
+      state.last_type = msg.type || 'unknown';
+      state.json_frames += 1;
+
+      if (msg.type === 'hello') {
+        state.deviceName = msg.name || state.deviceName;
+        state.release = msg.release || state.release;
+        updateBadge();
+      } else if (msg.type === 'status') {
+        Object.assign(state, msg);
+        applyStatusToForm();
+        $('lcdMode').textContent = `MODE: ${state.stream ? 'STREAM' : 'READY'}`;
+      } else if (msg.type === 'measure') {
+        state.last_hz = msg.hz;
+        state.gen_enabled = msg.gen_enabled;
+        state.gen_hz = msg.gen_hz;
+        state.gen_duty_pct = msg.gen_duty_pct;
+        state.gate_ms = msg.gate_ms;
+        state.samples = msg.samples;
+        state.pin_in = msg.pin_in;
+        state.pin_out = msg.pin_out ?? state.pin_out;
+        state.last_source = msg.source || 'manual';
+        updateDigits(msg.hz);
+        $('pulses').textContent = String(msg.pulses ?? '—');
+        $('elapsed').textContent = `${msg.elapsed_us ?? '—'} us`;
+        $('lcdMode').textContent = `MODE: ${msg.source === 'stream' ? 'STREAM' : 'MANUAL'}`;
+        lastMeasureTs = Date.now();
+        updateBadge();
+      } else if (msg.type === 'ack') {
+        state.last_ack = msg.msg || '—';
+        logLine('sys', `ACK: ${msg.msg}`);
+      } else if (msg.type === 'error') {
+        state.last_error = msg.msg || '—';
+        logLine('err', `ERR: ${msg.msg}`);
+      } else if (msg.type === 'rx') {
+        state.last_rx_echo = msg.line || '—';
+        logLine('sys', `PICO RX <= ${msg.line}`);
+      } else if (msg.type === 'log') {
+        logLine('sys', msg.msg);
+      } else if (msg.type === 'pong') {
+        state.last_pong = String(msg.ms ?? '—');
+        logLine('sys', `PONG ${msg.ms}`);
+      } else if (msg.type === 'help') {
+        logLine('sys', `HELP: ${(msg.commands || []).join(' | ')}`);
+      } else {
+        logLine('sys', `JSON <= ${safeJson(msg)}`);
+      }
+
+      updateDebugKPIs();
+    }
+
+    function handleRawLine(line) {
+      state.raw_frames += 1;
+      state.last_raw_line = line;
+      logLine('sys', `RAW <= ${line}`);
+      updateDebugKPIs();
+    }
+
+    function onNotify(event) {
+      const value = new TextDecoder().decode(event.target.value);
+      state.notify_frames += 1;
+      rxBuffer += value;
+      let idx;
+      while ((idx = rxBuffer.indexOf('\n')) >= 0) {
+        const line = rxBuffer.slice(0, idx).trim();
+        rxBuffer = rxBuffer.slice(idx + 1);
+        if (!line) continue;
+        logLine('rx', `RX <= ${line}`);
+        try {
+          const msg = JSON.parse(line);
+          handleJson(msg);
+        } catch {
+          state.parse_errors += 1;
+          handleRawLine(line);
+        }
+      }
+      updateDebugKPIs();
+    }
+
+    async function sendCmd(line) {
+      if (!state.connected) { logLine('err', 'Not connected'); return; }
+      const command = line.trim();
+      if (!command) return;
+      const payload = new TextEncoder().encode(command + '\n');
+      try {
+        if (transport === 'usb' && serialWriter) {
+          const writer = serialWriter;
+          const job = serialWriteQueue.then(() => writer.write(payload));
+          serialWriteQueue = job.catch(() => {});
+          await job;
+        } else if (transport === 'ble' && rxChar) {
+          await rxChar.writeValueWithResponse(payload);
+        } else throw new Error('Connection is unavailable');
+        state.last_cmd = command;
+        logLine('tx', `TX => ${command}`);
+        updateDebugKPIs();
+      } catch (err) {
+        logLine('err', `Send failed: ${err.message || err}`);
+        throw err;
+      }
+    }
+
+    async function readSerial(port, reader) {
+      const decoder = new TextDecoder();
+      let buffer = '';
+      try {
+        while (port === serialPort) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let idx;
+          while ((idx = buffer.indexOf('\n')) >= 0) {
+            const line = buffer.slice(0, idx).trim();
+            buffer = buffer.slice(idx + 1);
+            if (!line) continue;
+            if (line.startsWith('USB_JSON ')) {
+              const jsonLine = line.slice(9);
+              try { handleJson(JSON.parse(jsonLine)); }
+              catch { state.parse_errors++; handleRawLine(line); }
+            } else handleRawLine(line);
+          }
+          if (buffer.length > 16384) { buffer = ''; logLine('err', 'Discarded oversized USB line'); }
+        }
+      } catch (err) {
+        if (port === serialPort) logLine('err', `USB read failed: ${err.message || err}`);
+      } finally {
+        reader.releaseLock();
+        if (port === serialPort) {
+          serialReader = null;
+          state.connected = false;
+          logLine('sys', 'USB connection ended; use Disconnect to release the port.');
+          updateBadge();
+        }
+      }
+    }
+
+    async function connectUSB() {
+      if (state.connected || serialPort) { logLine('err', 'Disconnect the current connection first'); return; }
+      if (!navigator.serial) { logLine('err', 'Web Serial is unavailable; use a supported browser on localhost or HTTPS'); return; }
+      try {
+        const port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+        serialPort = port;
+        serialReader = port.readable.getReader();
+        serialWriter = port.writable.getWriter();
+        transport = 'usb';
+        state.connected = true;
+        state.deviceName = 'Pico USB';
+        updateBadge();
+        logLine('sys', 'USB connected. The Pico must run the USB-command firmware.');
+        serialReadTask = readSerial(port, serialReader);
+        await sendCmd('IDN?');
+        await sendCmd('STATUS?');
+      } catch (err) {
+        logLine('err', `USB connect failed: ${err.message || err}`);
+        await disconnectUSB();
+      }
+    }
+
+    async function disconnectUSB() {
+      const port = serialPort;
+      if (!port) return;
+      serialPort = null;
+      state.connected = false;
+      try { if (serialReader) await serialReader.cancel(); } catch {}
+      try { if (serialReadTask) await serialReadTask; } catch {}
+      serialReader = null;
+      try { await serialWriteQueue; } catch {}
+      if (serialWriter) { serialWriter.releaseLock(); serialWriter = null; }
+      try { await port.close(); } catch (err) { logLine('err', `USB close failed: ${err.message || err}`); }
+      serialReadTask = null;
+      transport = null;
+      updateBadge();
+      logLine('sys', 'USB disconnected');
+    }
+
+    async function disconnectCurrent() {
+      if (serialPort) await disconnectUSB();
+      else disconnectBLE();
+    }
+
+    async function connectBLE() {
+      if (state.connected || serialPort) { logLine('err', 'Disconnect the current connection first'); return; }
+      try {
+        bleDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ services: [NUS_SERVICE] }],
+          optionalServices: [NUS_SERVICE],
+        });
+        bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+        server = await bleDevice.gatt.connect();
+        service = await server.getPrimaryService(NUS_SERVICE);
+        rxChar = await service.getCharacteristic(NUS_RX);
+        txChar = await service.getCharacteristic(NUS_TX);
+        await txChar.startNotifications();
+        txChar.addEventListener('characteristicvaluechanged', onNotify);
+        transport = 'ble';
+        state.connected = true;
+        state.deviceName = bleDevice.name || 'Pico W';
+        updateBadge();
+        logLine('sys', `Connected to ${state.deviceName}`);
+        await sendCmd('IDN?');
+        await sendCmd('STATUS?');
+      } catch (err) {
+        logLine('err', `Connect failed: ${err.message || err}`);
+      }
+    }
+
+    function onDisconnected() {
+      if (transport !== 'ble') return;
+      state.connected = false;
+      transport = null;
+      updateBadge();
+      logLine('sys', 'Disconnected');
+    }
+
+    function disconnectBLE() {
+      try {
+        if (bleDevice?.gatt?.connected) {
+          bleDevice.gatt.disconnect();
+        }
+      } catch (err) {
+        logLine('err', `Disconnect failed: ${err.message || err}`);
+      }
+      state.connected = false;
+      transport = null;
+      updateBadge();
+    }
+
+    function bindTabs() {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+          tab.classList.add('active');
+          $(tab.dataset.tab).classList.add('active');
+        });
+      });
+    }
+
+    function bindUI() {
+      $('connectUsbBtn').addEventListener('click', connectUSB);
+      $('connectBtn').addEventListener('click', connectBLE);
+      $('disconnectBtn').addEventListener('click', disconnectCurrent);
+      $('setupGp3Btn').addEventListener('click', async () => {
+        try {
+          for (const command of ['STREAM OFF', 'GEN OFF', 'SET PIN_IN 3', 'SET GATE 1000', 'SET SAMPLES 1', 'STATUS?']) await sendCmd(command);
+          logLine('sys', 'Check the returned status before measuring; settings are not saved.');
+        } catch {}
+      });
+      $('refreshBtn').addEventListener('click', () => sendCmd('STATUS?'));
+      $('measureBtn').addEventListener('click', () => sendCmd('MEASURE'));
+      $('streamOnBtn').addEventListener('click', async () => { await sendCmd('STREAM ON'); await sendCmd('STATUS?'); });
+      $('streamOffBtn').addEventListener('click', async () => { await sendCmd('STREAM OFF'); await sendCmd('STATUS?'); });
+      $('pingBtn').addEventListener('click', () => sendCmd('PING'));
+      $('saveBtn').addEventListener('click', () => sendCmd('SAVE'));
+      $('factoryBtn').addEventListener('click', async () => { await sendCmd('FACTORY'); await sendCmd('STATUS?'); });
+      $('clearLogBtn').addEventListener('click', () => $('log').textContent = '');
+      $('copyLogBtn').addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText($('log').innerText); } catch {}
+      });
+      $('sendRawBtn').addEventListener('click', () => {
+        const v = $('rawCmd').value.trim();
+        if (v) sendCmd(v);
+      });
+      $('rawCmd').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') $('sendRawBtn').click();
+      });
+
+      $('applyMeterBtn').addEventListener('click', async () => {
+        saveLocalPrefs();
+        await sendCmd(`SET GATE ${$('gateMs').value}`);
+        await sendCmd(`SET SAMPLES ${$('samples').value}`);
+        await sendCmd(`SET STREAM_MS ${$('streamMs').value}`);
+        await sendCmd(`SET PIN_IN ${$('pinInput').value}`);
+        await sendCmd('STATUS?');
+      });
+
+      $('readMeterBtn').addEventListener('click', () => sendCmd('STATUS?'));
+
+      $('applyGenBtn').addEventListener('click', async () => {
+        saveLocalPrefs();
+        await sendCmd(`SET PIN_OUT ${$('pinOutput').value}`);
+        await sendCmd(`GEN SET ${$('genHz').value} ${$('genDuty').value}`);
+        await sendCmd('STATUS?');
+      });
+
+      $('genSetAndOnBtn').addEventListener('click', async () => {
+        saveLocalPrefs();
+        await sendCmd(`SET PIN_OUT ${$('pinOutput').value}`);
+        await sendCmd(`GEN SET ${$('genHz').value} ${$('genDuty').value}`);
+        await sendCmd('GEN ON');
+        await sendCmd('STATUS?');
+      });
+
+      $('genSetAndOffBtn').addEventListener('click', async () => {
+        saveLocalPrefs();
+        await sendCmd(`SET PIN_OUT ${$('pinOutput').value}`);
+        await sendCmd(`GEN SET ${$('genHz').value} ${$('genDuty').value}`);
+        await sendCmd('GEN OFF');
+        await sendCmd('STATUS?');
+      });
+
+      $('genOnBtn').addEventListener('click', async () => { await sendCmd('GEN ON'); await sendCmd('STATUS?'); });
+      $('genOffBtn').addEventListener('click', async () => { await sendCmd('GEN OFF'); await sendCmd('STATUS?'); });
+
+      document.querySelectorAll('.presetBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const hz = btn.dataset.hz;
+          $('genHz').value = hz;
+          $('genDuty').value = 50;
+          saveLocalPrefs();
+          await sendCmd(`GEN SET ${hz} 50`);
+          await sendCmd('GEN ON');
+          await sendCmd('STATUS?');
+        });
+      });
+    }
+
+    bindTabs();
+    bindUI();
+    loadLocalPrefs();
+    applyStatusToForm();
+    updateDigits(0);
+    updateSnapshot();
+    setInterval(updateAge, 250);
+  </script>
+</body>
+</html>

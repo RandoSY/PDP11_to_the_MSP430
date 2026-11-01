@@ -1,0 +1,4 @@
+Current reading edition: From_the_PDP11_to_the_MSP430_Revised_Textbook_CLAUDE.pdf (144 PDF pages).
+FULL_TEXT_EXPORT.txt is extracted from that PDF and may not preserve layout or figure content.
+The editable source and build process for this revised PDF were not supplied. The manuscript files and editorial/build_final_book.py describe and generate the previous edition, not this PDF. That script also overwrites BUILD_NOTES.txt with its old-edition notes.
+See validation/REVISION_AUDIT.md for comparison and current verification. PlatformIO target builds have passed; physical measurements remain unverified. See validation/PLATFORMIO_BUILD_RESULTS.md.

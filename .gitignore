@@ -1,0 +1,11 @@
+.pio/
+build/
+**/Debug/
+**/Release/
+**/.settings/
+**/.theia/
+**/.clangd
+**/__pycache__/
+*.py[cod]
+Screenshot *.png
+/code/00/

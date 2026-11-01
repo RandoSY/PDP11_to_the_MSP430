@@ -1,0 +1,28 @@
+ONE-WIRE TRANSPORT PORTING CONTRACT (NOT RUNNABLE FIRMWARE)
+
+bool ow_reset_presence(void)
+void ow_write_bit(uint8_t bit)
+uint8_t ow_read_bit(void)
+void ow_write_byte(uint8_t value)    // LSB first
+uint8_t ow_read_byte(void)           // LSB first
+
+Electrical requirements: 3.3 V DS18B20 supply, GND common, one verified
+pull-up (~4.7k) on P1.7 DQ; never actively drive the line high.
+
+Pseudocode for reset: drive low, hold for datasheet reset interval;
+release, sample presence in specified window; ensure recovery.
+Critical distinction: these are timings at the wire, not C-call durations.
+
+The reference OneWire-master library has an 8 MHz delay assumption and was
+not validated with the 1 MHz day-one environment. Adapt only after measuring
+reset, presence, read-slot, write-0 and write-1 waveforms independently.
+
+Algorithm after transport validated:
+reset+presence; SKIP_ROM 0xCC (single confirmed device only); CONVERT_T 0x44;
+wait for conversion completion (up to 750ms at 12 bits when externally powered);
+reset+presence; SKIP_ROM 0xCC; READ_SCRATCHPAD 0xBE; read nine bytes;
+CRC8(bytes 0..7) must equal byte 8; decode signed raw/16 C.
+
+Suggested validation records: edge captures, clock setting, firmware hash,
+power mode, pull-up measurement, sensor identity, conversion status, CRC,
+line-high recovery time, and an independent temperature comparison.

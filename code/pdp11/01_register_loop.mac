@@ -1,0 +1,10 @@
+; MACRO-11-style listing for historical/ISA study. Not assembled or run.
+; Arithmetic: 5+4+3+2+1 = 15 decimal (=17 octal).
+        .TITLE  REGLOOP
+        .PSECT  CODE
+START:  MOV     #5,R0
+        CLR     R1
+LOOP:   ADD     R0,R1
+        SOB     R0,LOOP
+        HALT
+        .END    START

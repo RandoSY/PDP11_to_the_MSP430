@@ -23,6 +23,12 @@ The browser dashboard connects to the Pico over USB or Bluetooth and displays fr
 
 ![Pico frequency meter dashboard showing USB and Bluetooth controls and the frequency display](instruments/pico_w_frequency_meter/dashboard-screenshot.png)
 
+## Educational macros
+
+The optional [edu430.h](code/msp430/edu430.h) library provides readable helpers such as `SET_BITS`, `CLEAR_BITS`, and `BITS_LOW`. Students should first work through the register-level examples, then compare them with the [CCS macro exercise](code/msp430/CCS_Optional_Edu_Macros/README.md) to see how a macro expands into the same kind of register operation. Include `edu430.h` in a C project when using its macros; it is not required by the basic examples.
+
+The header comes from the earlier MSP430 learning labs and contains board-specific helpers as well as generic bit macros. Its button alias uses P1.3, while this textbook's switch example uses P2.0; its second LED uses P1.6, which the timer lab uses for output. Check the mapping before using the board helpers.
+
 ## Source and rebuild status
 
 The revised PDF is the current reading edition. Its editable source and build process were not supplied. `CORE_MANUSCRIPT.md`, `SOURCE_MANUSCRIPT_v1.md`, and the scripts in `editorial/` belong to the earlier edition and cannot reproduce the revised PDF or its layout. The earlier Word file in `00/OLD Versions/` is not an editable version of this revision. Do not treat an output from `editorial/build_final_book.py` as a rebuild of the current book; it also writes `BUILD_NOTES.txt` for the earlier edition. See `validation/REVISION_AUDIT.md`.

@@ -17,6 +17,12 @@ The current reading edition is **From_the_PDP11_to_the_MSP430_Revised_Textbook_C
 - `figures/curriculum_atlas/` — original figure assets; the revised PDF incorporates the instructional plates.
 - `00/OLD Versions/` — prior PDFs, editable Word files, and standalone figure atlas as currently organized.
 
+## Pico frequency meter dashboard
+
+The browser dashboard connects to the Pico over USB or Bluetooth and displays frequency, pulse count, and measurement settings. See the [Pico meter guide](instruments/pico_w_frequency_meter/README.md) for firmware setup and the first measurement. The USB path has been tested with simulated devices; physical measurements remain to be verified.
+
+![Pico frequency meter dashboard showing USB and Bluetooth controls and the frequency display](instruments/pico_w_frequency_meter/dashboard-screenshot.png)
+
 ## Source and rebuild status
 
 The revised PDF is the current reading edition. Its editable source and build process were not supplied. `CORE_MANUSCRIPT.md`, `SOURCE_MANUSCRIPT_v1.md`, and the scripts in `editorial/` belong to the earlier edition and cannot reproduce the revised PDF or its layout. The earlier Word file in `00/OLD Versions/` is not an editable version of this revision. Do not treat an output from `editorial/build_final_book.py` as a rebuild of the current book; it also writes `BUILD_NOTES.txt` for the earlier edition. See `validation/REVISION_AUDIT.md`.
